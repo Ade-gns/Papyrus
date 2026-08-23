@@ -1,0 +1,9 @@
+build/
+build-*/
+*.o
+*.obj
+compile_commands.json
+.cache/
+
+# Vendored binary, fetched by scripts/fetch-pdfium.sh — not committed.
+/third_party/pdfium/
