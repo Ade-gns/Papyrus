@@ -1,10 +1,10 @@
 <RCC>
   <qresource prefix="/fonts">
-    <file>fonts/Pacifico-Regular.ttf</file>
-    <file>fonts/GreatVibes-Regular.ttf</file>
-    <file>fonts/Sacramento-Regular.ttf</file>
-    <file>fonts/AlexBrush-Regular.ttf</file>
-    <file>fonts/Allura-Regular.ttf</file>
-    <file>fonts/DancingScript-Regular.ttf</file>
+    <file alias="Pacifico-Regular.ttf">fonts/Pacifico-Regular.ttf</file>
+    <file alias="GreatVibes-Regular.ttf">fonts/GreatVibes-Regular.ttf</file>
+    <file alias="Sacramento-Regular.ttf">fonts/Sacramento-Regular.ttf</file>
+    <file alias="AlexBrush-Regular.ttf">fonts/AlexBrush-Regular.ttf</file>
+    <file alias="Allura-Regular.ttf">fonts/Allura-Regular.ttf</file>
+    <file alias="DancingScript-Regular.ttf">fonts/DancingScript-Regular.ttf</file>
   </qresource>
 </RCC>
