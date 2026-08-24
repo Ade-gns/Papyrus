@@ -71,6 +71,7 @@ Produit `build/Papyrus-x86_64.AppImage` : embarque Qt6 et PDFium, fonctionne sur
 | Paquet | Rôle |
 |---|---|
 | `qt6-base-dev`, `qt6-pdf-dev` | requis pour compiler |
+| `qt6-base-dev-tools` | requis pour `scripts/build-appimage.sh` (fournit `qmake6`) |
 | `libreoffice-writer`, `libreoffice-impress` | conversion Office → PDF (optionnel à l'exécution) |
 | `tesseract-ocr` (+ `tesseract-ocr-fra` pour le français) | OCR (optionnel à l'exécution) |
 
