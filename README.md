@@ -93,7 +93,7 @@ PDFium est vendorisé (téléchargé par `scripts/fetch-pdfium.sh`, non commité
 
 ### Autres formats
 
-Flatpak n'est pas encore disponible.
+Flatpak n'est pas encore disponible : bloqué par l'absence du module Qt6 Pdf dans le runtime KDE (détails dans [`PROGRESS.md`](PROGRESS.md)).
 
 ## Limitations connues
 

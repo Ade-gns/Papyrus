@@ -11,3 +11,7 @@ compile_commands.json
 # AppImage packaging tools, fetched by scripts/build-appimage.sh — not committed.
 /third_party/appimage-tools/
 *.AppImage
+
+# flatpak-builder working state/cache.
+.flatpak-builder/
+*.flatpak
