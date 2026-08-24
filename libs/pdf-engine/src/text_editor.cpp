@@ -38,43 +38,6 @@ bool isWordBoundary(FPDF_TEXTPAGE textPage, int index) {
     return code == ' ' || code == '\t' || code == '\r' || code == '\n' || code == 0;
 }
 
-// Distinct FPDF_PAGEOBJECTs spanned by [start, end], in first-seen order.
-// Real PDF producers don't agree on how much text one object covers — some
-// emit a whole line per object, others (e.g. Qt's own PDF writer, found by
-// testing) emit one object per *glyph*. A word clicked on can therefore be
-// backed by anywhere from one to many objects.
-std::vector<FPDF_PAGEOBJECT> objectsInRange(FPDF_TEXTPAGE textPage, int start, int end) {
-    std::vector<FPDF_PAGEOBJECT> objects;
-    for (int i = start; i <= end; ++i) {
-        FPDF_PAGEOBJECT object = FPDFText_GetTextObject(textPage, i);
-        if (object && std::find(objects.begin(), objects.end(), object) == objects.end()) {
-            objects.push_back(object);
-        }
-    }
-    return objects;
-}
-
-// The char range [start, end] is only the clicked *word*; the object(s)
-// backing it may extend further (a whole sentence, in some real-world PDFs —
-// see objectsInRange()'s comment). Widening to each object's true full range
-// lets replaceText() reconstruct prefix+newText+suffix so the parts of the
-// object outside the clicked word survive.
-void widenToObjectExtents(FPDF_TEXTPAGE textPage, const std::vector<FPDF_PAGEOBJECT>& objects, int totalChars,
-                           int& start, int& end) {
-    for (FPDF_PAGEOBJECT object : objects) {
-        int s = start;
-        while (s > 0 && FPDFText_GetTextObject(textPage, s - 1) == object) {
-            --s;
-        }
-        int e = end;
-        while (e + 1 < totalChars && FPDFText_GetTextObject(textPage, e + 1) == object) {
-            ++e;
-        }
-        start = std::min(start, s);
-        end = std::max(end, e);
-    }
-}
-
 // Real-world PDFs (confirmed: French government forms) sometimes wrap all
 // page content in a single Form XObject. FPDFFormObj_RemoveObject can delete
 // a text object nested one level inside one, but the deletion does not
@@ -200,8 +163,11 @@ std::optional<TextRun> TextEditor::runAt(int pageIndex, const QPointF& point, do
     std::optional<TextRun> result;
     if (charIndex >= 0 && !isWordBoundary(textPage, charIndex)) {
         // Word boundaries are found by content (whitespace), not by object
-        // identity — see objectsInRange()'s comment for why object identity
-        // alone isn't a usable unit of selection.
+        // identity: real PDF producers don't agree on how much text one
+        // object covers — some emit a whole line (or more) per object,
+        // others (e.g. Qt's own PDF writer, found by testing) one object
+        // per *glyph* — so object identity alone isn't a usable unit of
+        // selection.
         const int totalChars = FPDFText_CountChars(textPage);
         int start = charIndex;
         while (start > 0 && !isWordBoundary(textPage, start - 1)) {
@@ -249,39 +215,25 @@ bool TextEditor::replaceText(int pageIndex, const TextRun& run, const QString& n
         return false;
     }
 
-    const int totalChars = FPDFText_CountChars(textPage);
-    const std::vector<FPDF_PAGEOBJECT> objects = objectsInRange(textPage, run.startCharIndex, run.endCharIndex);
-    if (objects.empty()) {
-        FPDFText_ClosePage(textPage);
-        FPDF_ClosePage(page);
-        return false;
-    }
-
-    // Widen to each backing object's full extent (may exceed the clicked
-    // word — see widenToObjectExtents()'s comment) and reconstruct
-    // prefix+newText+suffix so text outside the clicked word, but sharing an
-    // object with it, is preserved.
-    int fullStart = run.startCharIndex;
-    int fullEnd = run.endCharIndex;
-    widenToObjectExtents(textPage, objects, totalChars, fullStart, fullEnd);
-
-    std::vector<unsigned short> buffer(static_cast<std::size_t>(fullEnd - fullStart + 1) + 1);
-    const int written = FPDFText_GetText(textPage, fullStart, fullEnd - fullStart + 1, buffer.data());
-    const QString originalFull = written > 0 ? QString::fromUtf16(reinterpret_cast<const char16_t*>(buffer.data()),
-                                                                    written - 1)
-                                              : QString();
-    const int relStart = run.startCharIndex - fullStart;
-    const int wordLength = run.endCharIndex - run.startCharIndex + 1;
-    const QString prefix = originalFull.left(relStart);
-    const QString suffix = originalFull.mid(relStart + wordLength);
-    const QString replacement = prefix + newText + suffix;
-
-    // Union of the touched extent's char boxes, in bottom-up PDF point space
-    // (PDFium's native space, unlike charBoxTopDown()'s conversion for the
-    // rest of this file's Papyrus-facing API).
+    // Cover and redraw only the clicked word's own char range — nothing
+    // wider. An earlier version widened to the backing object's full extent
+    // and reconstructed prefix+newText+suffix, on the assumption that a
+    // click could land inside a much larger object (a whole sentence, even a
+    // whole title, in some real-world PDFs) and any redraw needed to
+    // preserve the rest of that object's text. Found by testing (a title
+    // line "CERTIFICAT DE CESSION ...", one object end-to-end) that this
+    // caused two visible bugs: neighboring words got silently redrawn in the
+    // replacement's font (a title in bold changed to plain wherever it
+    // shared the object), and if the object happened to be split into
+    // several pieces by the source PDF's own layout (found: a mid-word
+    // split), only the piece touched by the click got covered, leaving a
+    // fragment of the original in view. Since nothing is ever removed here
+    // (see the Form XObject note below), there is no need to preserve
+    // anything by reconstruction — restricting to the clicked word's own
+    // range leaves every other character exactly as the source PDF drew it.
     double left = 1e9, right = -1e9, bottom = 1e9, top = -1e9;
     bool haveBox = false;
-    for (int i = fullStart; i <= fullEnd; ++i) {
+    for (int i = run.startCharIndex; i <= run.endCharIndex; ++i) {
         double l = 0, r = 0, b = 0, t = 0;
         if (FPDFText_GetCharBox(textPage, i, &l, &r, &b, &t)) {
             left = std::min(left, l);
@@ -292,10 +244,19 @@ bool TextEditor::replaceText(int pageIndex, const TextRun& run, const QString& n
         }
     }
     double originX = 0, originY = 0;
-    FPDFText_GetCharOrigin(textPage, fullStart, &originX, &originY);
-    FPDFText_ClosePage(textPage);
+    FPDFText_GetCharOrigin(textPage, run.startCharIndex, &originX, &originY);
+    // Reuse the clicked word's own font when possible, so an untouched
+    // neighboring word (or the rest of this same word, if the replacement
+    // is only a partial retype) doesn't visibly change style. Falls back to
+    // a standard base-14 font — see below — if there's no font to reuse or
+    // the reused one can't render the replacement text.
+    FPDF_FONT originalFont = nullptr;
+    if (FPDF_PAGEOBJECT originalObject = FPDFText_GetTextObject(textPage, run.startCharIndex)) {
+        originalFont = FPDFTextObj_GetFont(originalObject);
+    }
 
     if (!haveBox) {
+        FPDFText_ClosePage(textPage);
         FPDF_ClosePage(page);
         return false;
     }
@@ -316,19 +277,42 @@ bool TextEditor::replaceText(int pageIndex, const TextRun& run, const QString& n
     FPDF_PAGEOBJECT cover = makeCoverRect(boxBottomUp, background);
     FPDFPage_InsertObject(page, cover);
 
-    // A standard base-14 font, rather than reusing the original object's
-    // font, sidesteps two problems found by testing on real documents: (1)
-    // PDF producers often embed only the glyph subset actually used, so
-    // reusing the font can render new characters as missing-glyph boxes; (2)
-    // mutating an existing complex-font object's text in place was found not
-    // to reliably persist through save+reload on some real documents.
-    FPDF_PAGEOBJECT newObject = FPDFPageObj_NewTextObj(m_impl->document, "Helvetica", fontSize);
-    const std::u16string wide = replacement.toStdU16String();
-    const bool ok = FPDFText_SetText(newObject, reinterpret_cast<FPDF_WIDESTRING>(wide.c_str()));
-    if (!ok) {
-        FPDFPageObj_Destroy(newObject);
-        FPDF_ClosePage(page);
-        return false;
+    const std::u16string wide = newText.toStdU16String();
+    FPDF_PAGEOBJECT newObject = nullptr;
+    if (originalFont) {
+        newObject = FPDFPageObj_CreateTextObj(m_impl->document, originalFont, fontSize);
+        if (newObject) {
+            FPDFText_SetText(newObject, reinterpret_cast<FPDF_WIDESTRING>(wide.c_str()));
+            // PDF producers often embed only the glyph subset actually used.
+            // A character the replacement needs but the original word never
+            // used can be missing from that subset — and found by testing,
+            // FPDFText_SetText doesn't fail on this, it silently *drops* the
+            // unsupported character. Reading the object's text back and
+            // comparing catches that (a mismatch means something was
+            // dropped or substituted), so a plain success check on SetText
+            // alone can't be trusted here.
+            std::vector<unsigned short> readBack(wide.size() + 2);
+            const unsigned long readLen =
+                FPDFTextObj_GetText(newObject, textPage, readBack.data(),
+                                     static_cast<unsigned long>(readBack.size() * sizeof(unsigned short)));
+            const QString actual = readLen > 0
+                                        ? QString::fromUtf16(reinterpret_cast<const char16_t*>(readBack.data()),
+                                                              static_cast<int>(readLen / sizeof(unsigned short)) - 1)
+                                        : QString();
+            if (actual != newText) {
+                FPDFPageObj_Destroy(newObject);
+                newObject = nullptr;
+            }
+        }
+    }
+    FPDFText_ClosePage(textPage);
+    if (!newObject) {
+        newObject = FPDFPageObj_NewTextObj(m_impl->document, "Helvetica", fontSize);
+        if (!FPDFText_SetText(newObject, reinterpret_cast<FPDF_WIDESTRING>(wide.c_str()))) {
+            FPDFPageObj_Destroy(newObject);
+            FPDF_ClosePage(page);
+            return false;
+        }
     }
     FPDFPageObj_Transform(newObject, 1, 0, 0, 1, originX, originY);
     FPDFPage_InsertObject(page, newObject);
