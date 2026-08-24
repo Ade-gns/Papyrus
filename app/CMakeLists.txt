@@ -41,6 +41,7 @@ qt_add_executable(papyrus
     src/update_checker.h
     src/update_checker.cpp
     resources/fonts.qrc
+    resources/i18n.qrc
 )
 
 target_link_libraries(papyrus PRIVATE

@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/i18n">
+        <file alias="papyrus_en.qm">i18n/papyrus_en.qm</file>
+        <file alias="papyrus_es.qm">i18n/papyrus_es.qm</file>
+    </qresource>
+</RCC>
