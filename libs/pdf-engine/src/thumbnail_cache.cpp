@@ -35,6 +35,10 @@ QPixmap ThumbnailCache::thumbnail(int pageIndex) {
                 m_pending.remove(pageIndex);
                 const QPixmap pixmap = QPixmap::fromImage(image);
                 m_cache.insert(pageIndex, pixmap);
+                m_cacheOrder.append(pageIndex);
+                while (m_cacheOrder.size() > kMaxCached) {
+                    m_cache.remove(m_cacheOrder.takeFirst());
+                }
                 emit thumbnailReady(pageIndex, pixmap);
             },
             Qt::QueuedConnection);
@@ -48,6 +52,7 @@ void ThumbnailCache::clear() {
     m_pool.waitForDone();
     m_pending.clear();
     m_cache.clear();
+    m_cacheOrder.clear();
 }
 
 } // namespace papyrus::pdf
