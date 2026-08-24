@@ -14,6 +14,8 @@ qt_add_executable(papyrus
     src/page_manager_dialog.cpp
     src/annotation_dialog.h
     src/annotation_dialog.cpp
+    src/text_edit_dialog.h
+    src/text_edit_dialog.cpp
     src/text_to_pdf_dialog.h
     src/text_to_pdf_dialog.cpp
     src/images_to_pdf_dialog.h

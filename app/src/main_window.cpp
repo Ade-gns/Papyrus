@@ -9,6 +9,7 @@
 #include "office_conversion_dialog.h"
 #include "page_manager_dialog.h"
 #include "signature_dialog.h"
+#include "text_edit_dialog.h"
 #include "text_to_pdf_dialog.h"
 #include "thumbnail_panel.h"
 #include "update_checker.h"
@@ -109,6 +110,7 @@ void MainWindow::createActions() {
     fileMenu->addSeparator();
     fileMenu->addAction(tr("Organiser les pages..."), this, &MainWindow::openPageManager);
     fileMenu->addAction(tr("Annoter cette page..."), this, &MainWindow::openAnnotationDialog);
+    fileMenu->addAction(tr("Modifier le texte de cette page..."), this, &MainWindow::openTextEditDialog);
     fileMenu->addAction(tr("Signer le document..."), this, &MainWindow::openSignatureDialog);
     fileMenu->addAction(tr("Rendre ce document recherchable (OCR)..."), this,
                          &MainWindow::openOcrDialog);
@@ -298,6 +300,21 @@ void MainWindow::openAnnotationDialog() {
     auto* dialog = new AnnotationDialog(tab->filePath(), tab->currentPage(), this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     connect(dialog, &AnnotationDialog::documentSaved, this, [this, before](const QString& path) {
+        pdf::DocumentHistory::commit(path, before);
+        reloadTabForFile(path);
+    });
+    dialog->exec();
+}
+
+void MainWindow::openTextEditDialog() {
+    DocumentTab* tab = currentTab();
+    if (!tab) {
+        return;
+    }
+    const QByteArray before = pdf::DocumentHistory::capture(tab->filePath());
+    auto* dialog = new TextEditDialog(tab->filePath(), tab->currentPage(), this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &TextEditDialog::documentSaved, this, [this, before](const QString& path) {
         pdf::DocumentHistory::commit(path, before);
         reloadTabForFile(path);
     });

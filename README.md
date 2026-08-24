@@ -11,6 +11,7 @@ Suite bureautique PDF pour Linux — lecture, édition, annotation, signature, O
 
 - **Lecture** : onglets multi-documents, zoom, navigation par page, recherche plein texte, panneau de vignettes, glisser-déposer
 - **Édition de pages** : rotation, suppression, duplication, réorganisation, extraction, fusion de plusieurs PDF
+- **Modification de texte** : cliquer sur un mot déjà présent dans le PDF pour le corriger
 - **Annotations** : surlignage, rectangle, cercle
 - **Signature** : dessin à la souris, import d'image (fond blanc supprimé automatiquement), saisie au clavier avec polices manuscrites, placement avec rotation
 - **OCR** (Tesseract) : rend un PDF scanné recherchable
@@ -109,6 +110,7 @@ Flatpak n'est pas encore disponible : bloqué par l'absence du module Qt6 Pdf da
 - Annotations dessin libre, lignes/flèches et zones de texte libre non supportées (seuls surlignage, rectangle et cercle le sont).
 - Pas de création de nouveaux champs de formulaire, ni de support des formulaires XFA.
 - Une seule image par page pour la création de PDF depuis des images.
+- Modification de texte : le mot d'origine est recouvert puis remplacé visuellement, mais reste présent dans la couche invisible du PDF (recherche/copier-coller) — pas adapté à un usage de confidentialité/rédaction.
 
 Détails complets dans [`PROGRESS.md`](PROGRESS.md).
 

@@ -42,6 +42,7 @@ private:
     void openPrintPreview();
     void openPageManager();
     void openAnnotationDialog();
+    void openTextEditDialog();
     void openTextToPdfDialog();
     void openImagesToPdfDialog();
     void openOfficeConversionDialog();
