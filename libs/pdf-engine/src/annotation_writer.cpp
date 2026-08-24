@@ -18,22 +18,6 @@ using detail::releasePdfiumLibrary;
 
 namespace {
 
-struct FileWriter : FPDF_FILEWRITE {
-    explicit FileWriter(const QString& path) : file(path) {
-        version = 1;
-        WriteBlock = &FileWriter::write;
-    }
-    bool open() { return file.open(QIODevice::WriteOnly | QIODevice::Truncate); }
-    static int write(FPDF_FILEWRITE* self, const void* data, unsigned long size) {
-        auto* writer = static_cast<FileWriter*>(self);
-        return writer->file.write(static_cast<const char*>(data), static_cast<qint64>(size)) ==
-                       static_cast<qint64>(size)
-                   ? 1
-                   : 0;
-    }
-    QFile file;
-};
-
 FPDF_ANNOTATION_SUBTYPE subtypeFor(AnnotationShape shape) {
     switch (shape) {
     case AnnotationShape::Highlight:
@@ -226,12 +210,11 @@ bool AnnotationWriter::addImage(int pageIndex, const QImage& sourceImage, const 
 }
 
 EditResult AnnotationWriter::save(const QString& outputFilePath) const {
-    FileWriter writer(outputFilePath);
+    detail::AtomicPdfWriter writer(outputFilePath);
     if (!writer.open()) {
         return EditResult::SaveFailed;
     }
-    const bool ok = FPDF_SaveAsCopy(m_impl->document, &writer, 0);
-    writer.file.close();
+    const bool ok = FPDF_SaveAsCopy(m_impl->document, &writer, 0) && writer.commit();
     return ok ? EditResult::Ok : EditResult::SaveFailed;
 }
 

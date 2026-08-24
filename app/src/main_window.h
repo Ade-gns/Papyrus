@@ -7,6 +7,7 @@ class QTabWidget;
 class QSpinBox;
 class QLabel;
 class QMenu;
+class QAction;
 QT_END_NAMESPACE
 
 namespace papyrus {
@@ -25,6 +26,7 @@ public slots:
 protected:
     void dragEnterEvent(QDragEnterEvent* event) override;
     void dropEvent(QDropEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
 
 private:
     void createActions();
@@ -51,6 +53,14 @@ private:
     void updatePageControls();
     void updateWindowTitle();
 
+    void undo();
+    void redo();
+    void updateUndoRedoActions();
+
+    void trackTabOpened(const QString& filePath);
+    void trackTabClosed(const QString& filePath);
+    void offerCrashRecovery();
+
     QTabWidget* m_tabs;
     ThumbnailPanel* m_thumbnailPanel;
     QMenu* m_recentFilesMenu = nullptr;
@@ -58,6 +68,9 @@ private:
     QSpinBox* m_pageSpinBox;
     QLabel* m_pageCountLabel;
     QLabel* m_zoomLabel;
+
+    QAction* m_undoAction = nullptr;
+    QAction* m_redoAction = nullptr;
 };
 
 } // namespace papyrus

@@ -24,25 +24,6 @@ struct PageSlot {
     int rotationDelta = 0; // additional quarter turns clockwise, 0-3
 };
 
-struct FileWriter : FPDF_FILEWRITE {
-    explicit FileWriter(const QString& path) : file(path) {
-        version = 1;
-        WriteBlock = &FileWriter::write;
-    }
-
-    bool open() { return file.open(QIODevice::WriteOnly | QIODevice::Truncate); }
-
-    static int write(FPDF_FILEWRITE* self, const void* data, unsigned long size) {
-        auto* writer = static_cast<FileWriter*>(self);
-        return writer->file.write(static_cast<const char*>(data), static_cast<qint64>(size)) ==
-                       static_cast<qint64>(size)
-                   ? 1
-                   : 0;
-    }
-
-    QFile file;
-};
-
 EditResult mapLoadError() {
     switch (FPDF_GetLastError()) {
     case FPDF_ERR_FILE:
@@ -78,12 +59,11 @@ FPDF_DOCUMENT buildDocument(FPDF_DOCUMENT source, const std::vector<PageSlot>& e
 }
 
 EditResult writeDocument(FPDF_DOCUMENT document, const QString& outputFilePath) {
-    FileWriter writer(outputFilePath);
+    detail::AtomicPdfWriter writer(outputFilePath);
     if (!writer.open()) {
         return EditResult::SaveFailed;
     }
-    const bool ok = FPDF_SaveAsCopy(document, &writer, 0);
-    writer.file.close();
+    const bool ok = FPDF_SaveAsCopy(document, &writer, 0) && writer.commit();
     return ok ? EditResult::Ok : EditResult::SaveFailed;
 }
 

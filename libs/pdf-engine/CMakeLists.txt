@@ -4,11 +4,13 @@ add_library(pdf-engine STATIC
     include/papyrus/pdf/page_editor.h
     include/papyrus/pdf/annotation_writer.h
     include/papyrus/pdf/form_engine.h
+    include/papyrus/pdf/document_history.h
     src/document.cpp
     src/thumbnail_cache.cpp
     src/page_editor.cpp
     src/annotation_writer.cpp
     src/form_engine.cpp
+    src/document_history.cpp
     src/pdfium_runtime.h
     src/pdfium_runtime.cpp
 )

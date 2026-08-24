@@ -12,6 +12,7 @@
 #include "text_to_pdf_dialog.h"
 #include "thumbnail_panel.h"
 
+#include "papyrus/pdf/document_history.h"
 #include "papyrus/pdf/page_editor.h"
 
 #include <QAction>
@@ -58,9 +59,16 @@ MainWindow::MainWindow(QWidget* parent)
     createDocumentDock();
     createActions();
     createToolBar();
+    offerCrashRecovery();
 
     statusBar()->showMessage(tr("Prêt"));
     updatePageControls();
+}
+
+void MainWindow::closeEvent(QCloseEvent* event) {
+    QSettings settings;
+    settings.setValue(QStringLiteral("cleanShutdown"), true);
+    QMainWindow::closeEvent(event);
 }
 
 void MainWindow::createDocumentDock() {
@@ -107,6 +115,12 @@ void MainWindow::createActions() {
 
     fileMenu->addSeparator();
     fileMenu->addAction(tr("&Quitter"), QKeySequence::Quit, this, &QWidget::close);
+
+    auto* editMenu = menuBar()->addMenu(tr("&Édition"));
+    m_undoAction = editMenu->addAction(tr("Annuler"), QKeySequence::Undo, this, &MainWindow::undo);
+    m_redoAction = editMenu->addAction(tr("Rétablir"), QKeySequence::Redo, this, &MainWindow::redo);
+    m_undoAction->setEnabled(false);
+    m_redoAction->setEnabled(false);
 }
 
 void MainWindow::createToolBar() {
@@ -198,10 +212,14 @@ void MainWindow::openFile(const QString& filePath) {
     const int index = m_tabs->addTab(tab, tab->displayName());
     m_tabs->setCurrentIndex(index);
     addRecentFile(filePath);
+    trackTabOpened(filePath);
 }
 
 void MainWindow::closeTab(int index) {
     QWidget* widget = m_tabs->widget(index);
+    if (auto* tab = qobject_cast<DocumentTab*>(widget)) {
+        trackTabClosed(tab->filePath());
+    }
     m_tabs->removeTab(index);
     widget->deleteLater();
 }
@@ -248,10 +266,14 @@ void MainWindow::openPageManager() {
         return;
     }
     const QString filePath = tab->filePath();
+    const QByteArray before = pdf::DocumentHistory::capture(filePath);
 
     auto* dialog = new PageManagerDialog(filePath, this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
-    connect(dialog, &PageManagerDialog::documentSaved, this, &MainWindow::reloadTabForFile);
+    connect(dialog, &PageManagerDialog::documentSaved, this, [this, before](const QString& path) {
+        pdf::DocumentHistory::commit(path, before);
+        reloadTabForFile(path);
+    });
     dialog->exec();
 }
 
@@ -260,9 +282,13 @@ void MainWindow::openAnnotationDialog() {
     if (!tab) {
         return;
     }
+    const QByteArray before = pdf::DocumentHistory::capture(tab->filePath());
     auto* dialog = new AnnotationDialog(tab->filePath(), tab->currentPage(), this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
-    connect(dialog, &AnnotationDialog::documentSaved, this, &MainWindow::reloadTabForFile);
+    connect(dialog, &AnnotationDialog::documentSaved, this, [this, before](const QString& path) {
+        pdf::DocumentHistory::commit(path, before);
+        reloadTabForFile(path);
+    });
     dialog->exec();
 }
 
@@ -281,9 +307,13 @@ void MainWindow::openSignatureDialog() {
     if (!tab) {
         return;
     }
+    const QByteArray before = pdf::DocumentHistory::capture(tab->filePath());
     auto* dialog = new SignatureDialog(tab->filePath(), tab->currentPage(), this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
-    connect(dialog, &SignatureDialog::documentSaved, this, &MainWindow::reloadTabForFile);
+    connect(dialog, &SignatureDialog::documentSaved, this, [this, before](const QString& path) {
+        pdf::DocumentHistory::commit(path, before);
+        reloadTabForFile(path);
+    });
     dialog->exec();
 }
 
@@ -292,9 +322,13 @@ void MainWindow::openFormFillDialog() {
     if (!tab) {
         return;
     }
+    const QByteArray before = pdf::DocumentHistory::capture(tab->filePath());
     auto* dialog = new FormFillDialog(tab->filePath(), this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
-    connect(dialog, &FormFillDialog::documentSaved, this, &MainWindow::reloadTabForFile);
+    connect(dialog, &FormFillDialog::documentSaved, this, [this, before](const QString& path) {
+        pdf::DocumentHistory::commit(path, before);
+        reloadTabForFile(path);
+    });
     dialog->exec();
 }
 
@@ -361,6 +395,88 @@ void MainWindow::onCurrentTabChanged(int index) {
     m_thumbnailPanel->setDocumentTab(currentTab());
     updatePageControls();
     updateWindowTitle();
+    updateUndoRedoActions();
+}
+
+void MainWindow::undo() {
+    DocumentTab* tab = currentTab();
+    if (!tab) {
+        return;
+    }
+    const QString filePath = tab->filePath();
+    if (!pdf::DocumentHistory::undo(filePath)) {
+        return;
+    }
+    reloadTabForFile(filePath);
+}
+
+void MainWindow::redo() {
+    DocumentTab* tab = currentTab();
+    if (!tab) {
+        return;
+    }
+    const QString filePath = tab->filePath();
+    if (!pdf::DocumentHistory::redo(filePath)) {
+        return;
+    }
+    reloadTabForFile(filePath);
+}
+
+void MainWindow::updateUndoRedoActions() {
+    DocumentTab* tab = currentTab();
+    const bool hasDocument = tab != nullptr;
+    m_undoAction->setEnabled(hasDocument && pdf::DocumentHistory::canUndo(tab->filePath()));
+    m_redoAction->setEnabled(hasDocument && pdf::DocumentHistory::canRedo(tab->filePath()));
+}
+
+void MainWindow::trackTabOpened(const QString& filePath) {
+    QSettings settings;
+    QStringList open = settings.value(QStringLiteral("openTabs")).toStringList();
+    if (!open.contains(filePath)) {
+        open.append(filePath);
+        settings.setValue(QStringLiteral("openTabs"), open);
+    }
+}
+
+void MainWindow::trackTabClosed(const QString& filePath) {
+    QSettings settings;
+    QStringList open = settings.value(QStringLiteral("openTabs")).toStringList();
+    if (open.removeAll(filePath) > 0) {
+        settings.setValue(QStringLiteral("openTabs"), open);
+    }
+}
+
+void MainWindow::offerCrashRecovery() {
+    QSettings settings;
+    const bool cleanShutdown = settings.value(QStringLiteral("cleanShutdown"), true).toBool();
+    const QStringList openTabs = settings.value(QStringLiteral("openTabs")).toStringList();
+    settings.setValue(QStringLiteral("cleanShutdown"), false);
+
+    if (cleanShutdown) {
+        return;
+    }
+
+    QStringList existing;
+    for (const QString& path : openTabs) {
+        if (QFileInfo::exists(path)) {
+            existing << path;
+        }
+    }
+    if (existing.isEmpty()) {
+        return;
+    }
+
+    const auto choice = QMessageBox::question(
+        this, tr("Récupération après fermeture inattendue"),
+        tr("Papyrus ne s'est pas fermé proprement la dernière fois. Rouvrir les %1 document(s) "
+           "qui étaient ouverts ?")
+            .arg(existing.size()),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+    if (choice == QMessageBox::Yes) {
+        for (const QString& path : existing) {
+            openFile(path);
+        }
+    }
 }
 
 DocumentTab* MainWindow::currentTab() const {

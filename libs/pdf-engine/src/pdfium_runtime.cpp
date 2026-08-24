@@ -22,4 +22,21 @@ void releasePdfiumLibrary() {
     }
 }
 
+AtomicPdfWriter::AtomicPdfWriter(const QString& path) : file(path) {
+    version = 1;
+    WriteBlock = &AtomicPdfWriter::write;
+}
+
+bool AtomicPdfWriter::open() { return file.open(QIODevice::WriteOnly); }
+
+bool AtomicPdfWriter::commit() { return file.commit(); }
+
+int AtomicPdfWriter::write(FPDF_FILEWRITE* self, const void* data, unsigned long size) {
+    auto* writer = static_cast<AtomicPdfWriter*>(self);
+    return writer->file.write(static_cast<const char*>(data), static_cast<qint64>(size)) ==
+                   static_cast<qint64>(size)
+               ? 1
+               : 0;
+}
+
 } // namespace papyrus::pdf::detail
