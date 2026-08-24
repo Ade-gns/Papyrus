@@ -11,6 +11,7 @@
 #include "signature_dialog.h"
 #include "text_to_pdf_dialog.h"
 #include "thumbnail_panel.h"
+#include "update_checker.h"
 
 #include "papyrus/pdf/document_history.h"
 #include "papyrus/pdf/page_editor.h"
@@ -35,6 +36,7 @@
 #include <QSpinBox>
 #include <QStatusBar>
 #include <QTabWidget>
+#include <QTimer>
 #include <QToolBar>
 
 namespace papyrus {
@@ -45,7 +47,8 @@ const char* kRecentFilesKey = "recentFiles";
 } // namespace
 
 MainWindow::MainWindow(QWidget* parent)
-    : QMainWindow(parent), m_tabs(new QTabWidget(this)), m_thumbnailPanel(new ThumbnailPanel(this)) {
+    : QMainWindow(parent), m_tabs(new QTabWidget(this)), m_thumbnailPanel(new ThumbnailPanel(this)),
+      m_updateChecker(new UpdateChecker(this)) {
     setWindowTitle(QStringLiteral("Papyrus"));
     setAcceptDrops(true);
 
@@ -63,6 +66,11 @@ MainWindow::MainWindow(QWidget* parent)
 
     statusBar()->showMessage(tr("Prêt"));
     updatePageControls();
+
+    // Deferred so it never delays showing the window; silent (no dialog
+    // unless an update is actually found) so it never bothers a user who's
+    // already up to date.
+    QTimer::singleShot(3000, m_updateChecker, &UpdateChecker::checkSilently);
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
@@ -121,6 +129,10 @@ void MainWindow::createActions() {
     m_redoAction = editMenu->addAction(tr("Rétablir"), QKeySequence::Redo, this, &MainWindow::redo);
     m_undoAction->setEnabled(false);
     m_redoAction->setEnabled(false);
+
+    auto* helpMenu = menuBar()->addMenu(tr("&Aide"));
+    helpMenu->addAction(tr("Vérifier les mises à jour..."), this,
+                         [this] { m_updateChecker->checkInteractively(); });
 }
 
 void MainWindow::createToolBar() {

@@ -16,6 +16,7 @@ Suite bureautique PDF pour Linux — lecture, édition, annotation, signature, O
 - **Création de PDF** : depuis un fichier texte ou une série d'images
 - **Impression** native (CUPS), aperçu avant impression
 - **Undo/Redo** multi-niveaux et récupération automatique après une fermeture inattendue
+- **Vérification des mises à jour** : menu Aide, ou automatique et discrète au démarrage (ne prévient que si une version plus récente existe)
 
 Le détail de chaque phase de développement et les choix techniques sont documentés dans [`PROGRESS.md`](PROGRESS.md).
 

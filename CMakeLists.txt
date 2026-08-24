@@ -13,7 +13,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Pdf PdfWidgets PrintSupport Concurrent)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Pdf PdfWidgets PrintSupport Concurrent Network)
 
 set(PDFium_DIR "${CMAKE_SOURCE_DIR}/third_party/pdfium" CACHE PATH "Path to vendored PDFium")
 if(NOT EXISTS "${PDFium_DIR}/lib/libpdfium.so")

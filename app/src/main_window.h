@@ -14,6 +14,7 @@ namespace papyrus {
 
 class DocumentTab;
 class ThumbnailPanel;
+class UpdateChecker;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -71,6 +72,8 @@ private:
 
     QAction* m_undoAction = nullptr;
     QAction* m_redoAction = nullptr;
+
+    UpdateChecker* m_updateChecker;
 };
 
 } // namespace papyrus

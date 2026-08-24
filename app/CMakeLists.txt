@@ -36,6 +36,8 @@ qt_add_executable(papyrus
     src/ocr_dialog.cpp
     src/form_fill_dialog.h
     src/form_fill_dialog.cpp
+    src/update_checker.h
+    src/update_checker.cpp
     resources/fonts.qrc
 )
 
@@ -44,6 +46,7 @@ target_link_libraries(papyrus PRIVATE
     Qt6::Pdf
     Qt6::PdfWidgets
     Qt6::PrintSupport
+    Qt6::Network
     pdf-engine
     conversion-engine
     ocr-engine
