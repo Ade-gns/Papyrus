@@ -1,5 +1,8 @@
 # Papyrus
 
+[![Dernière release](https://img.shields.io/github/v/release/Ade-gns/Papyrus)](https://github.com/Ade-gns/Papyrus/releases/latest)
+[![Licence MIT](https://img.shields.io/github/license/Ade-gns/Papyrus)](LICENSE)
+
 Suite bureautique PDF pour Linux — lecture, édition, annotation, signature, OCR et conversion, dans une application de bureau native (C++ / Qt6), sans dépendre d'un service en ligne.
 
 ![Capture d'écran de Papyrus](docs/screenshot.png)
@@ -21,6 +24,10 @@ Suite bureautique PDF pour Linux — lecture, édition, annotation, signature, O
 Le détail de chaque phase de développement et les choix techniques sont documentés dans [`PROGRESS.md`](PROGRESS.md).
 
 ## Installation
+
+### Paquets pré-compilés
+
+Les paquets `.deb`, `.rpm` et l'AppImage sont disponibles sur la page des [releases GitHub](https://github.com/Ade-gns/Papyrus/releases/latest) — téléchargez celui qui correspond à votre distribution et suivez les instructions ci-dessous pour l'installer. S'il n'y a pas encore de release publiée, compilez depuis les sources avec les instructions suivantes.
 
 ### En une commande (Debian / Ubuntu et dérivés)
 
