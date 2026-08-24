@@ -1,0 +1,84 @@
+# Papyrus
+
+Suite bureautique PDF pour Linux — lecture, édition, annotation, signature, OCR et conversion, dans une application de bureau native (C++ / Qt6), sans dépendre d'un service en ligne.
+
+![Capture d'écran de Papyrus](docs/screenshot.png)
+
+## Fonctionnalités
+
+- **Lecture** : onglets multi-documents, zoom, navigation par page, recherche plein texte, panneau de vignettes, glisser-déposer
+- **Édition de pages** : rotation, suppression, duplication, réorganisation, extraction, fusion de plusieurs PDF
+- **Annotations** : surlignage, rectangle, cercle
+- **Signature** : dessin à la souris, import d'image (fond blanc supprimé automatiquement), saisie au clavier avec polices manuscrites, placement avec rotation
+- **OCR** (Tesseract) : rend un PDF scanné recherchable
+- **Formulaires** : remplissage de champs texte, cases à cocher, listes déroulantes
+- **Conversion Office** : DOC/DOCX/ODT, PPT/PPTX/ODP → PDF (via LibreOffice headless)
+- **Création de PDF** : depuis un fichier texte ou une série d'images
+- **Impression** native (CUPS), aperçu avant impression
+- **Undo/Redo** multi-niveaux et récupération automatique après une fermeture inattendue
+
+Le détail de chaque phase de développement et les choix techniques sont documentés dans [`PROGRESS.md`](PROGRESS.md).
+
+## Installation
+
+### Paquet `.deb` (Debian / Ubuntu et dérivés)
+
+Aucun paquet pré-construit n'est publié pour l'instant — construisez-le localement :
+
+```bash
+git clone https://github.com/Ade-gns/Papyrus.git
+cd Papyrus
+scripts/fetch-pdfium.sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j"$(nproc)"
+cd build && cpack -G DEB
+sudo apt install ./papyrus_*.deb
+```
+
+### Compiler et lancer sans installer
+
+```bash
+git clone https://github.com/Ade-gns/Papyrus.git
+cd Papyrus
+scripts/fetch-pdfium.sh          # télécharge PDFium (vendorisé, pas commité)
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build -j"$(nproc)"
+./build/app/papyrus
+```
+
+### Dépendances système
+
+| Paquet | Rôle |
+|---|---|
+| `qt6-base-dev`, `qt6-pdf-dev` | requis pour compiler |
+| `libreoffice-writer`, `libreoffice-impress` | conversion Office → PDF (optionnel à l'exécution) |
+| `tesseract-ocr` (+ `tesseract-ocr-fra` pour le français) | OCR (optionnel à l'exécution) |
+
+PDFium est vendorisé (téléchargé par `scripts/fetch-pdfium.sh`, non commité dans le dépôt).
+
+### Autres formats
+
+`.rpm`, AppImage et Flatpak ne sont pas encore disponibles.
+
+## Limitations connues
+
+- Le visualiseur principal (`QPdfView`) n'affiche pas les annotations (limitation de Qt) — elles sont bien enregistrées dans le fichier et visibles dans tout autre lecteur PDF. Les signatures et images insérées, elles, sont bien visibles dans Papyrus car intégrées comme vrai contenu de page.
+- Annotations dessin libre, lignes/flèches et zones de texte libre non supportées (seuls surlignage, rectangle et cercle le sont).
+- Pas de création de nouveaux champs de formulaire, ni de support des formulaires XFA.
+- Une seule image par page pour la création de PDF depuis des images.
+
+Détails complets dans [`PROGRESS.md`](PROGRESS.md).
+
+## Contribuer
+
+Le projet en est à ses débuts. Les *issues* et *pull requests* sont bienvenues — pour un changement conséquent, ouvrez d'abord une *issue* pour en discuter. `PROGRESS.md` liste les pièges techniques déjà rencontrés (utile avant de toucher au moteur PDFium).
+
+## Licence
+
+Papyrus est distribué sous licence [MIT](LICENSE).
+
+Il s'appuie sur :
+- [PDFium](https://pdfium.googlesource.com/pdfium/) (BSD-3-Clause) et ses propres dépendances tierces (voir `third_party/pdfium/licenses/` après `scripts/fetch-pdfium.sh`)
+- [Qt6](https://www.qt.io/) (LGPLv3, lié dynamiquement)
+- [LibreOffice](https://www.libreoffice.org/) et [Tesseract OCR](https://github.com/tesseract-ocr/tesseract), invoqués comme processus externes, sous leurs licences respectives
+- Polices manuscrites sous [SIL Open Font License](app/resources/fonts/OFL.txt)

@@ -36,9 +36,8 @@ set(CPACK_PACKAGE_VENDOR "Papyrus")
 set(CPACK_PACKAGE_CONTACT "Adelphe Borges <borges.adelphe@gmail.com>")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Suite bureautique PDF (lecture, édition, annotation, signature, OCR)")
 set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
-# No CPACK_RESOURCE_FILE_LICENSE / CPACK_PACKAGE_HOMEPAGE_URL yet: the project
-# has no top-level LICENSE file or public homepage of its own (third_party/
-# pdfium's license is PDFium's, not Papyrus's) — set both once that's decided.
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/Ade-gns/Papyrus")
 
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Adelphe Borges <borges.adelphe@gmail.com>")
 set(CPACK_DEBIAN_PACKAGE_SECTION "office")
