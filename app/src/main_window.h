@@ -35,6 +35,8 @@ private:
     void rebuildRecentFilesMenu();
     void closeTab(int index);
     void onCurrentTabChanged(int index);
+    void openPrintDialog();
+    void openPrintPreview();
     void openPageManager();
     void openAnnotationDialog();
     void openTextToPdfDialog();

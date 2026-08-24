@@ -4,6 +4,8 @@ qt_add_executable(papyrus
     src/main_window.cpp
     src/document_tab.h
     src/document_tab.cpp
+    src/document_printer.h
+    src/document_printer.cpp
     src/thumbnail_panel.h
     src/thumbnail_panel.cpp
     src/search_bar.h

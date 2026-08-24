@@ -45,10 +45,21 @@ Chaque phase a été validée par des tests directs sur de vrais fichiers (jamai
 - `QFontDatabase` plante (segfault) si utilisé avec un `QCoreApplication` au lieu d'un `QGuiApplication`/`QApplication`.
 - PDFium n'a **aucune fonction directe** pour fixer la valeur d'un champ de formulaire — il faut simuler une vraie interaction (`FORM_SetFocusedAnnot` + `FORM_SelectAllText` + `FORM_ReplaceSelection` pour le texte, clic simulé pour les cases à cocher, `FORM_SetIndexSelected` pour les listes — qui échoue silencieusement sans focus préalable).
 
-## Prochaines étapes (Phases 8-9, non commencées)
+## Phase 8 (en cours)
 
-- **Phase 8** : impression (natif Linux/CUPS), historique Undo/Redo multi-niveaux + sauvegarde automatique + récupération après crash, optimisation des performances (gros documents, chargement à la demande).
+| Volet | Contenu | Statut |
+|---|---|---|
+| Impression | Rendu page-à-page (`Document::renderPage`) vers `QPrinter`, mise à l'échelle + centrage sur la zone imprimable, respect de la plage de pages / page courante choisie dans le dialogue. `Fichier > Imprimer...` (Ctrl+P, `QPrintDialog`) et `Fichier > Aperçu avant impression...` (`QPrintPreviewDialog`), backend CUPS détecté sur la machine de dev. | ✅ testé réel (rendu vérifié en générant un PDF via le chemin d'impression et en le rouvrant dans l'app) |
+| Undo/Redo + autosauvegarde + récupération crash | — | ⬜ non commencé |
+| Optimisation performances | — | ⬜ non commencé |
+
 - **Phase 9** : packaging — `.deb`, `.rpm`, AppImage, Flatpak, script d'installation en une commande, système de mise à jour.
+
+## Notes techniques Phase 8 — impression
+
+- Nouveau : `app/src/document_printer.h/.cpp` — fonction libre `papyrus::printDocument(Document&, QPrinter&, currentPageIndex)`, sans dépendance Widgets côté `pdf-engine` (reste dans `app/`, qui lie déjà `Qt6::PrintSupport`).
+- Échelle calculée en comparant la taille de page en points (`Document::pagePointSize`) convertie en pixels à la résolution de l'imprimante (`printer.resolution()`), contre `printer.pageRect(QPrinter::DevicePixel)` — mêmes unités des deux côtés, sinon le calcul d'échelle est faux.
+- `QPrintDialog` : options `PrintPageRange` + `PrintCurrentPage` activées ; `printDocument` lit `printer.printRange()` pour restreindre les pages rendues.
 
 ## Comment compiler
 

@@ -1,6 +1,7 @@
 #include "main_window.h"
 
 #include "annotation_dialog.h"
+#include "document_printer.h"
 #include "document_tab.h"
 #include "images_to_pdf_dialog.h"
 #include "form_fill_dialog.h"
@@ -25,6 +26,9 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QMimeData>
+#include <QPrintDialog>
+#include <QPrintPreviewDialog>
+#include <QPrinter>
 #include <QSettings>
 #include <QSignalBlocker>
 #include <QSpinBox>
@@ -81,6 +85,10 @@ void MainWindow::createActions() {
 
     m_recentFilesMenu = fileMenu->addMenu(tr("Récemment ouverts"));
     rebuildRecentFilesMenu();
+
+    fileMenu->addSeparator();
+    fileMenu->addAction(tr("&Imprimer..."), QKeySequence::Print, this, &MainWindow::openPrintDialog);
+    fileMenu->addAction(tr("Aperçu avant impression..."), this, &MainWindow::openPrintPreview);
 
     fileMenu->addSeparator();
     fileMenu->addAction(tr("Organiser les pages..."), this, &MainWindow::openPageManager);
@@ -196,6 +204,42 @@ void MainWindow::closeTab(int index) {
     QWidget* widget = m_tabs->widget(index);
     m_tabs->removeTab(index);
     widget->deleteLater();
+}
+
+void MainWindow::openPrintDialog() {
+    DocumentTab* tab = currentTab();
+    if (!tab) {
+        return;
+    }
+
+    QPrinter printer(QPrinter::HighResolution);
+    printer.setDocName(tab->displayName());
+    printer.setFromTo(1, tab->pageCount());
+
+    QPrintDialog dialog(&printer, this);
+    dialog.setOption(QAbstractPrintDialog::PrintPageRange);
+    dialog.setOption(QAbstractPrintDialog::PrintCurrentPage);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    printDocument(*tab->document(), printer, tab->currentPage());
+}
+
+void MainWindow::openPrintPreview() {
+    DocumentTab* tab = currentTab();
+    if (!tab) {
+        return;
+    }
+
+    QPrinter printer(QPrinter::HighResolution);
+    printer.setDocName(tab->displayName());
+
+    QPrintPreviewDialog preview(&printer, this);
+    connect(&preview, &QPrintPreviewDialog::paintRequested, this, [tab](QPrinter* p) {
+        printDocument(*tab->document(), *p, tab->currentPage());
+    });
+    preview.exec();
 }
 
 void MainWindow::openPageManager() {
