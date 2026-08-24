@@ -62,7 +62,7 @@ Chaque phase a été validée par des tests directs sur de vrais fichiers (jamai
 | `.rpm` | — | ⬜ non commencé |
 | AppImage | — | ⬜ non commencé |
 | Flatpak | — | ⬜ non commencé |
-| Script d'installation une commande | — | ⬜ non commencé |
+| Script d'installation une commande | `scripts/install.sh` : compile depuis les sources (pas de release pré-compilée publiée) et installe via `apt`. Utilisable en local (`./scripts/install.sh`, réutilise le dépôt courant) ou via `curl \| bash` (clone dans `~/.cache/papyrus-src`). Limité aux systèmes basés sur `apt` (seul format de paquet existant pour l'instant). | ✅ testé réel — vraie installation système effectuée et vérifiée (voir notes ci-dessous) |
 | Système de mise à jour | — | ⬜ non commencé |
 
 ## Notes techniques Phase 9 — packaging `.deb`
@@ -73,7 +73,14 @@ Chaque phase a été validée par des tests directs sur de vrais fichiers (jamai
 - `main.cpp` : ajout de `QApplication::setDesktopFileName("papyrus")` pour que l'icône/fenêtre soit correctement associée au `.desktop` sous Wayland/GNOME.
 - **En attente de décision utilisateur (pas fabriqué)** : `CPACK_RESOURCE_FILE_LICENSE` et `CPACK_PACKAGE_HOMEPAGE_URL` volontairement non renseignés — le projet n'a pas encore de fichier `LICENSE` propre (celui de `third_party/pdfium/` est la licence de PDFium, pas celle de Papyrus) ni d'URL publique. À définir avant une vraie publication du paquet.
 - Testé réel : `.deb` généré et inspecté (`dpkg-deb --info`/`-c`) — dépendances Qt6 correctement détectées, `Recommends` LibreOffice/Tesseract présents, arborescence correcte. Extrait avec `dpkg-deb -x` dans une racine temporaire (sans jamais faire de `dpkg -i` réel sur la machine) et le binaire extrait lancé directement (sans `LD_LIBRARY_PATH`) : se lance et affiche un PDF correctement, confirmant que le RPATH suffit à trouver `libpdfium.so` une fois installé. `.desktop` validé avec `desktop-file-validate` (aucune erreur).
-  - Non testé : installation système réelle (`dpkg -i` / `apt install ./papyrus_*.deb`) et intégration bureau qui en découle (entrée de menu, icône dans le lanceur, association MIME PDF) — action système à confirmer avec l'utilisateur avant de le faire pour de vrai.
+- Installation système réelle testée par la suite (voir notes du script d'installation ci-dessous) : `apt install ./papyrus_*.deb` fonctionne, entrée de menu et icône confirmées via `desktop-file-validate` + `gio mime application/pdf` (liste bien `papyrus.desktop` comme gestionnaire possible du PDF), et le binaire installé (`papyrus`, sans chemin) se lance et rend un PDF correctement.
+
+## Notes techniques Phase 9 — script d'installation en une commande
+
+- Nouveau : `scripts/install.sh`. Décision (validée avec l'utilisateur) : ne compile pas de release pré-publiée pour l'instant — toujours une compilation depuis les sources (~5-10 min, deux invites `sudo` : dépendances de build, puis installation du `.deb` généré). Publier une release GitHub avec un `.deb` pré-compilé reste une option pour accélérer ça plus tard.
+- Détection : réutilise le dépôt courant si le script est lancé depuis un clone existant (`./scripts/install.sh`) ; sinon (lancé via `curl | bash`, donc sans clone local) clone dans `~/.cache/papyrus-src`. Seul ce dossier de cache est jamais réinitialisé (`git reset --hard`) — un clone de travail existant n'est jamais touché au-delà d'être lu.
+- Limité aux systèmes basés sur `apt` (détecté via `command -v apt-get`) : seul format de paquet existant pour l'instant. Message d'erreur clair et renvoi vers le README pour les autres distributions plutôt que d'échouer silencieusement.
+- Testé réel, exécution complète du script avec l'accord explicite de l'utilisateur (la dernière étape fait un vrai `sudo apt-get install` sur la machine) : dépendances déjà présentes détectées, compilation, génération du `.deb`, puis installation système réelle réussie (`dpkg -l papyrus` → `ii papyrus 0.1.0 amd64`). `papyrus` (sans chemin, résolu via `/usr/bin`) lancé et vérifié fonctionnel avec capture d'écran, icône de fenêtre correcte (confirmant `QApplication::setDesktopFileName` + le `.desktop` installé).
 
 ## Notes techniques Phase 8 — impression
 

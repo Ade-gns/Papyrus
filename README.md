@@ -21,9 +21,15 @@ Le détail de chaque phase de développement et les choix techniques sont docume
 
 ## Installation
 
-### Paquet `.deb` (Debian / Ubuntu et dérivés)
+### En une commande (Debian / Ubuntu et dérivés)
 
-Aucun paquet pré-construit n'est publié pour l'instant — construisez-le localement :
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ade-gns/Papyrus/main/scripts/install.sh | bash
+```
+
+Télécharge les dépendances de compilation, compile Papyrus, génère un `.deb` et l'installe via `apt` (deux invites `sudo` : dépendances, puis le paquet). Aucune release pré-compilée n'est publiée pour l'instant, donc ça compile depuis les sources (~5-10 minutes). Fonctionne aussi depuis un clone existant : `./scripts/install.sh`.
+
+### Paquet `.deb` manuellement
 
 ```bash
 git clone https://github.com/Ade-gns/Papyrus.git
