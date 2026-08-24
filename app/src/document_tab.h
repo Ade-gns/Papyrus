@@ -22,6 +22,7 @@ class DocumentTab : public QWidget {
     Q_OBJECT
 public:
     explicit DocumentTab(QWidget* parent = nullptr);
+    ~DocumentTab() override;
 
     pdf::LoadResult load(const QString& filePath);
 

@@ -51,6 +51,17 @@ DocumentTab::DocumentTab(QWidget* parent)
     connect(m_searchModel, &QPdfSearchModel::countChanged, this, &DocumentTab::onSearchResultsChanged);
 }
 
+DocumentTab::~DocumentTab() {
+    // Tearing down m_document below closes the underlying QPdfDocument,
+    // which re-emits currentPageChanged (via QPdfPageNavigator) as it resets
+    // to an invalid page. If that reaches MainWindow's per-tab lambda while
+    // this tab is being destroyed as part of the whole window closing, it
+    // calls back into the QTabWidget mid-teardown and crashes (found via a
+    // real SIGSEGV in QStackedLayout::currentWidget() on app exit). Blocking
+    // signals here keeps every member destructor below from emitting.
+    blockSignals(true);
+}
+
 pdf::LoadResult DocumentTab::load(const QString& filePath) {
     const auto result = m_document.load(filePath);
     if (result == pdf::LoadResult::Ok) {
