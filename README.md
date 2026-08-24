@@ -66,6 +66,20 @@ scripts/build-appimage.sh
 
 Produit `build/Papyrus-x86_64.AppImage` : embarque Qt6 et PDFium, fonctionne sur la plupart des distributions sans rien installer (juste `chmod +x` puis exécuter). `scripts/build-appimage.sh` télécharge automatiquement `linuxdeploy`/`appimagetool` (vérifiés par somme de contrôle) au premier lancement.
 
+### Paquet `.rpm` (Fedora / openSUSE et dérivés)
+
+```bash
+git clone https://github.com/Ade-gns/Papyrus.git
+cd Papyrus
+scripts/fetch-pdfium.sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j"$(nproc)"
+cd build && cpack -G RPM
+sudo dnf install ./papyrus-*.x86_64.rpm   # ou : sudo zypper install ./papyrus-*.x86_64.rpm
+```
+
+⚠️ Ce `.rpm` est construit et testé sur une machine Debian/Ubuntu, sans détection automatique fiable des dépendances Fedora (noms de paquets Qt6 différents entre distributions, pas de base RPM locale sur une machine `dpkg`). Les dépendances (`qt6-qtbase`, `qt6-qtpdf`) sont donc renseignées à la main dans `CMakeLists.txt` et n'ont pas été vérifiées sur une vraie installation Fedora/openSUSE — une confirmation ou correction par quelqu'un utilisant réellement ces distributions est bienvenue.
+
 ### Dépendances système
 
 | Paquet | Rôle |
@@ -79,7 +93,7 @@ PDFium est vendorisé (téléchargé par `scripts/fetch-pdfium.sh`, non commité
 
 ### Autres formats
 
-`.rpm` et Flatpak ne sont pas encore disponibles.
+Flatpak n'est pas encore disponible.
 
 ## Limitations connues
 
