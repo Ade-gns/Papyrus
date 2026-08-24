@@ -52,6 +52,28 @@ target_link_libraries(papyrus PRIVATE
 target_include_directories(papyrus PRIVATE src)
 
 # Dev-tree convenience: run straight from the build dir without LD_LIBRARY_PATH.
-# Packaging will instead ship libpdfium.so next to the executable with a
-# $ORIGIN rpath (see packaging/ in a later phase).
+# The installed/packaged binary instead ships libpdfium.so next to it (see
+# install() rules below) and finds it via INSTALL_RPATH.
 set_target_properties(papyrus PROPERTIES BUILD_RPATH "${PDFium_DIR}/lib")
+
+# --- Install rules (Phase 9 packaging) ---
+# libpdfium.so isn't a system library (it's vendored, fetched by
+# scripts/fetch-pdfium.sh), so it ships in a private directory next to the
+# binary rather than a shared libdir; INSTALL_RPATH points there with
+# $ORIGIN so it works regardless of install prefix.
+set_target_properties(papyrus PROPERTIES
+    INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}/papyrus"
+    BUILD_WITH_INSTALL_RPATH FALSE
+)
+
+install(TARGETS papyrus RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES "${PDFium_DIR}/lib/libpdfium.so" DESTINATION "${CMAKE_INSTALL_LIBDIR}/papyrus")
+
+install(FILES "${CMAKE_SOURCE_DIR}/packaging/papyrus.desktop"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
+install(FILES "${CMAKE_SOURCE_DIR}/packaging/icons/papyrus-48.png"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/48x48/apps" RENAME papyrus.png)
+install(FILES "${CMAKE_SOURCE_DIR}/packaging/icons/papyrus-128.png"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/128x128/apps" RENAME papyrus.png)
+install(FILES "${CMAKE_SOURCE_DIR}/packaging/icons/papyrus-256.png"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/256x256/apps" RENAME papyrus.png)

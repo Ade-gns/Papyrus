@@ -8,6 +8,7 @@ int main(int argc, char* argv[]) {
     QApplication::setApplicationName("Papyrus");
     QApplication::setOrganizationName("Papyrus");
     QApplication::setApplicationVersion("0.1.0");
+    QApplication::setDesktopFileName("papyrus"); // matches packaging/papyrus.desktop
 
     papyrus::bundledSignatureFontFamilies(); // load the handwriting fonts up front
 

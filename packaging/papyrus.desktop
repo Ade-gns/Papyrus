@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Papyrus
+GenericName=Éditeur PDF
+Comment=Suite bureautique PDF : lecture, édition, annotation, signature, OCR
+Exec=papyrus %f
+Icon=papyrus
+Terminal=false
+Categories=Office;Viewer;
+MimeType=application/pdf;
+StartupWMClass=papyrus

@@ -54,7 +54,26 @@ Chaque phase a été validée par des tests directs sur de vrais fichiers (jamai
 | Undo/Redo + autosauvegarde + récupération crash | Historique de versions par fichier (`DocumentHistory`, pile undo/redo persistée sur disque), câblé sur les 4 dialogues qui éditent un document en place (pages, annotations, signature, formulaires) via `Édition > Annuler/Rétablir` (Ctrl+Z / Ctrl+Maj+Z). Écriture atomique (`QSaveFile`) partagée par tous les writers PDFium — un crash pendant une sauvegarde ne corrompt plus le fichier original. Récupération de session : les onglets ouverts sont suivis en continu ; si le dernier arrêt n'était pas propre, l'app propose de les rouvrir au démarrage. | ✅ testé réel (voir notes ci-dessous) |
 | Optimisation performances | Chargement des vignettes à la demande (zone visible + marge de préchargement) au lieu de rendre toutes les pages dès l'ouverture d'un document ; cache de vignettes plafonné (300 entrées, éviction FIFO). | ✅ testé réel (voir notes ci-dessous) |
 
-- **Phase 9** : packaging — `.deb`, `.rpm`, AppImage, Flatpak, script d'installation en une commande, système de mise à jour.
+## Phase 9 (en cours) — packaging
+
+| Volet | Contenu | Statut |
+|---|---|---|
+| `.deb` | `cpack -G DEB` depuis `build/` (ou `cmake --build build --target package`) génère `papyrus_<version>_amd64.deb`. Installe dans `/usr/bin`, `libpdfium.so` vendorisé dans `/usr/lib/papyrus/` (RPATH `$ORIGIN/../lib/papyrus`, pas de `LD_LIBRARY_PATH` requis), `.desktop` + icônes (48/128/256) dans le thème hicolor. Dépendances Qt6 calculées automatiquement (`dpkg-shlibdeps`) ; LibreOffice/Tesseract en `Recommends` (fonctionnalités optionnelles, le cœur PDF marche sans). | ✅ testé réel (voir notes ci-dessous) |
+| `.rpm` | — | ⬜ non commencé |
+| AppImage | — | ⬜ non commencé |
+| Flatpak | — | ⬜ non commencé |
+| Script d'installation une commande | — | ⬜ non commencé |
+| Système de mise à jour | — | ⬜ non commencé |
+
+## Notes techniques Phase 9 — packaging `.deb`
+
+- Nouveau : `packaging/papyrus.desktop`, `packaging/icons/papyrus-{48,128,256}.png` (icône simple type parchemin, générée par `packaging/generate_icon.py` via Pillow — pas d'outil de rasterisation SVG disponible sur la machine de dev, donc dessinée directement en PNG). `packaging/generate_icon.py` n'est pas exécuté par le build, à relancer manuellement si l'icône doit changer.
+- `app/CMakeLists.txt` : règles `install()` (binaire, `libpdfium.so`, `.desktop`, icônes) + `INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}/papyrus"` avec `BUILD_WITH_INSTALL_RPATH FALSE` pour ne pas perturber le `BUILD_RPATH` de dev (qui pointe vers `third_party/pdfium/lib`).
+- `CMakeLists.txt` (racine) : `include(GNUInstallDirs)` + bloc `CPACK_*` (Debian generator uniquement pour l'instant) + `include(CPack)`, en fin de fichier après tous les `add_subdirectory`.
+- `main.cpp` : ajout de `QApplication::setDesktopFileName("papyrus")` pour que l'icône/fenêtre soit correctement associée au `.desktop` sous Wayland/GNOME.
+- **En attente de décision utilisateur (pas fabriqué)** : `CPACK_RESOURCE_FILE_LICENSE` et `CPACK_PACKAGE_HOMEPAGE_URL` volontairement non renseignés — le projet n'a pas encore de fichier `LICENSE` propre (celui de `third_party/pdfium/` est la licence de PDFium, pas celle de Papyrus) ni d'URL publique. À définir avant une vraie publication du paquet.
+- Testé réel : `.deb` généré et inspecté (`dpkg-deb --info`/`-c`) — dépendances Qt6 correctement détectées, `Recommends` LibreOffice/Tesseract présents, arborescence correcte. Extrait avec `dpkg-deb -x` dans une racine temporaire (sans jamais faire de `dpkg -i` réel sur la machine) et le binaire extrait lancé directement (sans `LD_LIBRARY_PATH`) : se lance et affiche un PDF correctement, confirmant que le RPATH suffit à trouver `libpdfium.so` une fois installé. `.desktop` validé avec `desktop-file-validate` (aucune erreur).
+  - Non testé : installation système réelle (`dpkg -i` / `apt install ./papyrus_*.deb`) et intégration bureau qui en découle (entrée de menu, icône dans le lanceur, association MIME PDF) — action système à confirmer avec l'utilisateur avant de le faire pour de vrai.
 
 ## Notes techniques Phase 8 — impression
 
