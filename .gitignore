@@ -7,3 +7,7 @@ compile_commands.json
 
 # Vendored binary, fetched by scripts/fetch-pdfium.sh — not committed.
 /third_party/pdfium/
+
+# AppImage packaging tools, fetched by scripts/build-appimage.sh — not committed.
+/third_party/appimage-tools/
+*.AppImage

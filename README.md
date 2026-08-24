@@ -52,6 +52,20 @@ cmake --build build -j"$(nproc)"
 ./build/app/papyrus
 ```
 
+### AppImage (portable, sans installation)
+
+```bash
+git clone https://github.com/Ade-gns/Papyrus.git
+cd Papyrus
+scripts/fetch-pdfium.sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j"$(nproc)"
+scripts/build-appimage.sh
+./build/Papyrus-x86_64.AppImage
+```
+
+Produit `build/Papyrus-x86_64.AppImage` : embarque Qt6 et PDFium, fonctionne sur la plupart des distributions sans rien installer (juste `chmod +x` puis exécuter). `scripts/build-appimage.sh` télécharge automatiquement `linuxdeploy`/`appimagetool` (vérifiés par somme de contrôle) au premier lancement.
+
 ### Dépendances système
 
 | Paquet | Rôle |
@@ -64,7 +78,7 @@ PDFium est vendorisé (téléchargé par `scripts/fetch-pdfium.sh`, non commité
 
 ### Autres formats
 
-`.rpm`, AppImage et Flatpak ne sont pas encore disponibles.
+`.rpm` et Flatpak ne sont pas encore disponibles.
 
 ## Limitations connues
 
